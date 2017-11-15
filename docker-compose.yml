@@ -1,0 +1,60 @@
+version: '2'
+
+services:
+
+  elasticsearch:
+    build: elasticsearch/
+    volumes:
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - "ES_JAVA_OPTS=-Xms512m -Xms512m"
+    networks:
+      - elk
+
+
+  filebeat:
+    build: filebeat/
+    volumes:
+      - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - /Users/mluo/odin-out-0.log:/var/log/test/odin-out-0.log
+    networks:
+      - elk
+    depends_on:
+      - logstash
+
+
+  logstash:
+    build: logstash/
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/patterns:/usr/share/logstash/patterns
+    ports:
+      - "5000:5000"
+      - "5044:5044"
+    environment:
+      LS_JAVA_OPTS: "-Xmx1g -Xms1g"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+      
+  kibana:
+    build: kibana/
+    volumes:
+      - ./kibana/config/:/usr/share/kibana/config
+    ports:
+      - "80:5601"
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
+networks:
+  elk:
+    driver: bridge
